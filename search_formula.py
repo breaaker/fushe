@@ -3,7 +3,7 @@ import json
 import fuzzywuzzy.fuzz as fuzz
 from PyQt6.QtGui import QPixmap
 import matplotlib.pyplot as plt
-
+import numpy as np
 with open("data/formulas.json", encoding="utf-8") as f:
     formulas = json.load(f)
 
@@ -62,6 +62,7 @@ class Page_search(QWidget):
         plt.text(0.5, 0.5, re, fontsize=12, ha='center')
         plt.axis("off")
         plt.savefig("form1.png")
+        plt.close()
         label = QLabel(self)
         pixmap = QPixmap("form1.png")
         label.setPixmap(pixmap)
@@ -73,6 +74,7 @@ class Page_search(QWidget):
         plt.text(0.5, 0.5, re2, fontsize=12, ha='center')
         plt.axis("off")
         plt.savefig("form2.png")
+        plt.close()
         label = QLabel(self)
         pixmap = QPixmap("form2.png")
         label.setPixmap(pixmap)
@@ -84,22 +86,18 @@ class Page_search(QWidget):
         '''
         该函数用于搜索公式,使用了fuzzywuzzy库
         '''
-        texts = formulas.keys()
-        ratio = 0
-        find = ""
-        result = ""
+        texts = list(formulas.keys())
+        rs = []
         for text in texts:
-            r = fuzz.ratio(need, text)
-            if r > ratio:
-                ratio = r
-                result2 = result
-                find2 = find
-                result = formulas[text]
-                find = text
-        if ratio < 15:
-            result = "No such formula"
-        if result2 == "":
-            result2 = "No such formula"
-        if find2 == "":
-            find2 = "No such formula"
+            r = fuzz.partial_ratio(need, text)
+            rs.append(r)
+        rs = np.array(rs)
+        find = texts[np.argmax(rs)]
+        if np.max(rs) < 15:
+            return "No result", "No result", "No result", "No result"
+        result = formulas[find]
+        rs[np.argmax(rs)] = 0
+        find2 = texts[np.argmax(rs)]
+        result2 = formulas[find2]
+
         return result, find, result2, find2

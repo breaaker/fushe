@@ -3,32 +3,40 @@ from PyQt6.QtWidgets import (QWidget, QApplication, QPushButton, QVBoxLayout, QL
 from openai import OpenAI
 import json
 
-with open("key.txt", "r", encoding="utf-8") as f:
-    data = f.readlines()
-    key = data[1].strip()
+no_key = False
 
-client = OpenAI(
-    api_key = key,
-    base_url = "https://api.moonshot.cn/v1",
-)
+try:
+    with open("key.txt", "r", encoding="utf-8") as f:
+        data = f.readlines()
+        key = data[0].strip()
+except FileNotFoundError:
+    no_key = True
 
-with open("data/formulas.json", "r", encoding="utf-8") as f:
-    formulas = json.load(f)
+history = []
 
-formula = ""
+if not no_key:
+    client = OpenAI(
+        api_key = key,
+        base_url = "https://api.moonshot.cn/v1",
+    )
 
-for key in formulas.keys():
-    formula += key + ": "
-    formula += formulas[key] + "\n"
+    with open("data/formulas.json", "r", encoding="utf-8") as f:
+        formulas = json.load(f)
 
-file_content = client.files.content(file_id="cp7bjnb5cfuldv2viqqg").text
+    formula = ""
 
-history = [
-    {"role": "system", "content": "你是辐射防护小助手，你要回答学生的问题，你可以参考文件的内容，还有参考的公式，别忘了把$去掉\
-     你的回答应该遵从以下格式：答案：\n...\n解析：\n...\n，如果学生向你抱怨辐射防护太难了，你也应当给予鼓励。"},
-    {"role": "system", "content": file_content},
-    {"role": "system", "content": formula}
-]
+    for key in formulas.keys():
+        formula += key + ": "
+        formula += formulas[key] + "\n"
+
+    file_content = client.files.content(file_id="cp7bjnb5cfuldv2viqqg").text
+
+    history = [
+        {"role": "system", "content": "你是辐射防护小助手，你要回答学生的问题，你可以参考文件的内容，还有参考的公式，别忘了把$去掉\
+        你的回答应该遵从以下格式：答案：\n...\n解析：\n...\n，如果学生向你抱怨辐射防护太难了，你也应当给予鼓励。"},
+        {"role": "system", "content": file_content},
+        {"role": "system", "content": formula}
+    ]
 
 class Page_ai(QWidget):
     def __init__(self):
@@ -59,6 +67,9 @@ class Page_ai(QWidget):
         talk.append("辐射防护小助手: \n")
         QApplication.processEvents()
 
+        if no_key:
+            talk.append("对不起，未检测到API密钥，无法回答你的问题")
+            return
         if not query:
             return
         history.append({

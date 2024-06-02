@@ -478,10 +478,11 @@ class Page_cal_out_neutron(QWidget):
         thick = 1/sigma * np.log(A*Y*B*q/(4*np.pi*r**2*phi))
         n_thick.setText("所需材料的厚度: " + str(thick) + "cm")
 
-import scipy
+from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 import networkx as nx
 from matplotlib.font_manager import FontProperties
+import scipy.special._cdflib
 
 font = FontProperties(family="SimSun", size=14)
 plt.rcParams['font.sans-serif'] = ['SimSun']
@@ -601,7 +602,7 @@ class Page_cal_in(QWidget):
         '''
         该函数用于设置核素的半衰期
         '''
-        self.T = float(set_nuc_T.text())
+        self.T = eval(set_nuc_T.text())
 
     def add_nodes(self, G, add_node, set_T, add_edge_start, add_edge_end, chain_pic, state, all_node):
         '''
@@ -617,7 +618,7 @@ class Page_cal_in(QWidget):
         all_node.addItem(node)
 
         self.nodes.append(node)
-        self.Ts.append(float(set_T.text()))
+        self.Ts.append(eval(set_T.text()))
         a = self.edges
         a = np.vstack((a, np.zeros(a.shape[0])))
         a = np.hstack((a, np.zeros((a.shape[0], 1))))
@@ -646,7 +647,7 @@ class Page_cal_in(QWidget):
         if self.edges[self.nodes.index(end)][self.nodes.index(start)] != 0:
             state.setText("状态: 添加失败, 该边已存在")
             return
-        ratio = float(ratio.text())
+        ratio = eval(ratio.text())
         G.add_edge(start, end)
         start_index = self.nodes.index(start)
         end_index = self.nodes.index(end)
@@ -667,10 +668,10 @@ class Page_cal_in(QWidget):
         '''
         node = node.currentText()
         if self.As[self.nodes.index(node)] != 0:
-            self.As[self.nodes.index(node)] = float(origin_A.text())
+            self.As[self.nodes.index(node)] = eval(origin_A.text())
             state_A.setText("状态: 注意, 该隔室的初始活度已被覆盖")
             return
-        self.As[self.nodes.index(node)] = float(origin_A.text())
+        self.As[self.nodes.index(node)] = eval(origin_A.text())
         state_A.setText("状态: 添加成功")
 
     def cal_in(self, time, A_pic):
@@ -688,9 +689,9 @@ class Page_cal_in(QWidget):
                     B[i][j] = -np.log(2) / self.Ts[j] - np.log(2) / T
         
         def dA_dt(t, A):
-            return (B*t) @ A
+            return B @ A
         
-        sol = scipy.integrate.solve_ivp(dA_dt, [0, float(time.text())], A_0, method='RK45', dense_output=True)
+        sol = solve_ivp(dA_dt, [0, float(time.text())], A_0, method='RK45', dense_output=True)
 
         t = np.linspace(0, float(time.text()), 100)
         A = sol.sol(t)
